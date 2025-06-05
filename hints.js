@@ -133,8 +133,8 @@ class HintSystem {
 
     // Count empty cells in a 3x3 box
     countEmptyInBox(row, col) {
-        const startRow = row - row % 3;
-        const startCol = col - col % 3;
+        const startRow = Math.floor(row / 3) * 3;
+        const startCol = Math.floor(col / 3) * 3;
         let count = 0;
 
         for (let i = 0; i < 3; i++) {
@@ -193,6 +193,66 @@ class HintSystem {
     setMaxHints(max) {
         this.maxHints = max;
         this.updateHintButton();
+    }
+
+    // Check if a value can be placed in a cell
+    canPlaceValue(board, row, col, value) {
+        // Check row
+        for (let i = 0; i < 9; i++) {
+            if (board[row][i] === value) return false;
+        }
+
+        // Check column
+        for (let i = 0; i < 9; i++) {
+            if (board[i][col] === value) return false;
+        }
+
+        // Check box
+        const startRow = Math.floor(row / 3) * 3;
+        const startCol = Math.floor(col / 3) * 3;
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                if (board[startRow + i][startCol + j] === value) return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Get possible values for a cell
+    getPossibleValues(board, row, col) {
+        const possibleValues = [];
+        for (let value = 1; value <= 9; value++) {
+            if (this.canPlaceValue(board, row, col, value)) {
+                possibleValues.push(value);
+            }
+        }
+        return possibleValues;
+    }
+
+    // Check if a value exists in a row
+    isValueInRow(board, row, value) {
+        return board[row].includes(value);
+    }
+
+    // Check if a value exists in a column
+    isValueInColumn(board, col, value) {
+        return board.some(row => row[col] === value);
+    }
+
+    // Check if a value exists in a box
+    isValueInBox(board, boxIndex, value) {
+        const startRow = Math.floor(boxIndex / 3) * 3;
+        const startCol = (boxIndex % 3) * 3;
+        
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                if (board[startRow + i][startCol + j] === value) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     // Get hint analysis for educational purposes
@@ -254,77 +314,4 @@ class HintSystem {
     }
 }
 
-// Global hint system instance
-const hintSystem = new HintSystem();
-
-// Helper functions for global use
-function getHint() {
-    if (!currentBoard || !solutionBoard) return null;
-    
-    const hint = hintSystem.getHint();
-    if (hint && hintSystem.useHint()) {
-        return hint;
-    }
-    return null;
-}
-
-function resetHints() {
-    hintSystem.reset();
-}
-
-function getRemainingHints() {
-    return hintSystem.getHintsUsed();
-}
-
-function setMaxHintsForDifficulty(difficulty) {
-    hintSystem.setMaxHints(difficulty);
-}
-
-function getHintAnalysis(row, col) {
-    if (!currentBoard) return null;
-    return hintSystem.getHintAnalysis(currentBoard, row, col);
-}
-
-// Visual hint highlighting
-function highlightHint(row, col, value) {
-    const index = row * 9 + col;
-    const cell = document.querySelectorAll('.sudoku-cell')[index];
-    
-    if (cell) {
-        cell.classList.add('hint-highlight');
-        cell.style.background = '#4CAF50';
-        cell.style.color = 'white';
-        cell.style.fontWeight = 'bold';
-        
-        // Remove highlight after 2 seconds
-        setTimeout(() => {
-            cell.classList.remove('hint-highlight');
-            cell.style.background = '';
-            cell.style.color = '';
-            cell.style.fontWeight = '';
-        }, 2000);
-    }
-}
-
-// Show hint explanation in UI
-function showHintExplanation(explanation) {
-    // Create or update hint explanation element
-    let explanationElement = document.getElementById('hint-explanation');
-    if (!explanationElement) {
-        explanationElement = document.createElement('div');
-        explanationElement.id = 'hint-explanation';
-        explanationElement.className = 'hint-explanation';
-        document.querySelector('.game-info').appendChild(explanationElement);
-    }
-    
-    explanationElement.textContent = explanation;
-    explanationElement.style.display = 'block';
-    
-    // Hide explanation after 5 seconds
-    setTimeout(() => {
-        explanationElement.style.display = 'none';
-    }, 5000);
-}
-
-// Export the HintSystem class
 export default HintSystem;

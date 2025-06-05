@@ -164,7 +164,7 @@ export class SudokuGame {
             this.renderBoard();
             this.timer.reset();
             this.timer.start();
-            this.hintSystem.initialize(solution, board, this.difficultyManager.currentDifficulty);
+            this.hintSystem.initialize(solution, this.board, this.difficultyManager.currentDifficulty);
             this.updateMistakesDisplay();
             this.hideVictoryModal();
             this.saveGameState();
@@ -190,6 +190,8 @@ export class SudokuGame {
         this.timer.reset();
         this.timer.start();
         this.hintSystem.reset();
+        // Re-initialize hint system with the reset board
+        this.hintSystem.initialize(this.solution, this.board, this.difficultyManager.currentDifficulty);
         this.updateMistakesDisplay();
         this.saveGameState();
 
@@ -212,7 +214,9 @@ export class SudokuGame {
                 const value = this.board[row][col];
                 if (value !== 0) {
                     cell.textContent = value;
-                    cell.classList.add('prefilled');
+                    if (this.initialBoard && this.initialBoard[row][col] !== 0) {
+                        cell.classList.add('prefilled');
+                    }
                 }
 
                 // Add data attributes for validation
@@ -236,7 +240,7 @@ export class SudokuGame {
         }
         this.selectedCell = cell;
         cell.classList.add('selected');
-        this.highlightRelatedCells(cell);
+        // Removed the highlightRelatedCells call
     }
 
     // Handle number input
@@ -257,6 +261,9 @@ export class SudokuGame {
         this.selectedCell.textContent = number || '';
         this.selectedCell.classList.toggle('incorrect', 
             number !== 0 && number !== this.solution[row][col]);
+
+        // Update hint system with new board state
+        this.hintSystem.currentBoard = this.board;
 
         if (number !== 0 && number !== this.solution[row][col]) {
             this.handleMistake();
@@ -313,49 +320,88 @@ export class SudokuGame {
         }
     }
 
-    // // Highlight related cells
-    // highlightRelatedCells(cell) {
-    //     const row = parseInt(cell.dataset.row);
-    //     const col = parseInt(cell.dataset.col);
-
-    //     // Remove previous highlights
-    //     this.grid.querySelectorAll('.highlighted').forEach(cell => {
-    //         cell.classList.remove('highlighted');
-    //     });
-
-    //     // Highlight row, column, and box
-    //     for (let i = 0; i < 9; i++) {
-    //         // Row
-    //         this.grid.querySelector(`[data-row="${row}"][data-col="${i}"]`)
-    //             ?.classList.add('highlighted');
-    //         // Column
-    //         this.grid.querySelector(`[data-row="${i}"][data-col="${col}"]`)
-    //             ?.classList.add('highlighted');
-    //     }
-
-    //     // Box
-    //     const boxRow = Math.floor(row / 3) * 3;
-    //     const boxCol = Math.floor(col / 3) * 3;
-    //     for (let i = 0; i < 3; i++) {
-    //         for (let j = 0; j < 3; j++) {
-    //             this.grid.querySelector(`[data-row="${boxRow + i}"][data-col="${boxCol + j}"]`)
-    //                 ?.classList.add('highlighted');
-    //         }
-    //     }
-    // }
-
     // Get a hint
     getHint() {
-        if (!this.isGameActive) return;
+        if (!this.isGameActive) {
+            console.log('Game not active');
+            return;
+        }
+
+        console.log('Getting hint...');
+        console.log('Current board state:', this.board);
+        console.log('Solution:', this.solution);
 
         const hint = this.hintSystem.getHint();
+        console.log('Hint received:', hint);
+
         if (hint) {
             const cell = this.grid.querySelector(`[data-row="${hint.row}"][data-col="${hint.col}"]`);
             if (cell) {
+                // Update the board state first
+                this.board[hint.row][hint.col] = hint.value;
+                
+                // Update the UI
                 this.selectCell(cell);
-                this.handleNumberInput(hint.value);
+                cell.textContent = hint.value;
+                cell.dataset.value = hint.value;
+                
+                // Remove incorrect class if present
+                cell.classList.remove('incorrect');
+                
+                // Add visual feedback for the hint
+                cell.classList.add('hint-given');
+                setTimeout(() => {
+                    cell.classList.remove('hint-given');
+                }, 2000);
+
+                // Update hint system with new board state
+                this.hintSystem.currentBoard = this.board;
+
+                // Check for victory and save state
+                this.checkVictory();
+                this.saveGameState();
+
+                console.log('Hint applied successfully');
+            } else {
+                console.error('Could not find cell for hint');
             }
+        } else {
+            console.log('No hint available');
+            // Show a message to the user
+            this.showHintMessage();
         }
+    }
+
+    // Show hint message when no hints are available
+    showHintMessage() {
+        const message = document.createElement('div');
+        message.className = 'hint-message';
+        message.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #3498db;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 10000;
+            font-weight: 500;
+            font-size: 1rem;
+        `;
+        
+        if (this.hintSystem.hintsUsed >= this.hintSystem.maxHints) {
+            message.textContent = `You've used all ${this.hintSystem.maxHints} hints!`;
+        } else {
+            message.textContent = 'No hints available for the current board state.';
+        }
+        
+        document.body.appendChild(message);
+
+        setTimeout(() => {
+            message.remove();
+        }, 3000);
     }
 
     // Check for victory
@@ -430,7 +476,7 @@ export class SudokuGame {
             if (savedDarkMode) {
                 this.isDarkMode = savedDarkMode === 'true';
                 document.body.classList.toggle('dark-mode', this.isDarkMode);
-                this.darkModeToggle.textContent = this.isDarkMode ? '☀️' : '🌙';
+                this.darkModeToggle.innerHTML = this.isDarkMode ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
             }
 
             if (savedState) {
