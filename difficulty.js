@@ -11,7 +11,8 @@ class DifficultyManager {
                 timeLimit: 0,        // No time limit
                 allowMistakes: true,
                 highlightConflicts: true,
-                showPossibleNumbers: true
+                showPossibleNumbers: true,
+                preventIncorrectInput: false  // Allow incorrect input, just mark as mistake
             },
             medium: {
                 emptyCells: 50,      // ~62% empty
@@ -19,7 +20,8 @@ class DifficultyManager {
                 timeLimit: 0,        // No time limit
                 allowMistakes: true,
                 highlightConflicts: true,
-                showPossibleNumbers: false
+                showPossibleNumbers: false,
+                preventIncorrectInput: false
             },
             hard: {
                 emptyCells: 58,      // ~72% empty
@@ -27,15 +29,17 @@ class DifficultyManager {
                 timeLimit: 0,        // No time limit
                 allowMistakes: true,
                 highlightConflicts: true,
-                showPossibleNumbers: false
+                showPossibleNumbers: false,
+                preventIncorrectInput: false
             },
             expert: {
                 emptyCells: 64,      // ~79% empty
                 maxHints: 1,
                 timeLimit: 0,        // No time limit
-                allowMistakes: false,
+                allowMistakes: false,  // Don't allow mistakes to be recorded
                 highlightConflicts: true,
-                showPossibleNumbers: false
+                showPossibleNumbers: false,
+                preventIncorrectInput: true  // Prevent incorrect input entirely
             }
         };
 
@@ -162,6 +166,11 @@ class DifficultyManager {
         return this.settings[this.currentDifficulty].allowMistakes;
     }
 
+    // Check if incorrect input should be prevented
+    shouldPreventIncorrectInput() {
+        return this.settings[this.currentDifficulty].preventIncorrectInput;
+    }
+
     // Check if conflicts should be highlighted
     shouldHighlightConflicts() {
         return this.settings[this.currentDifficulty].highlightConflicts;
@@ -198,7 +207,8 @@ class DifficultyManager {
                 timeLimit: 0,
                 allowMistakes: true,
                 highlightConflicts: true,
-                showPossibleNumbers: true
+                showPossibleNumbers: true,
+                preventIncorrectInput: false
             },
             medium: {
                 emptyCells: 50,
@@ -206,7 +216,8 @@ class DifficultyManager {
                 timeLimit: 0,
                 allowMistakes: true,
                 highlightConflicts: true,
-                showPossibleNumbers: false
+                showPossibleNumbers: false,
+                preventIncorrectInput: false
             },
             hard: {
                 emptyCells: 58,
@@ -214,7 +225,8 @@ class DifficultyManager {
                 timeLimit: 0,
                 allowMistakes: true,
                 highlightConflicts: true,
-                showPossibleNumbers: false
+                showPossibleNumbers: false,
+                preventIncorrectInput: false
             },
             expert: {
                 emptyCells: 64,
@@ -222,7 +234,8 @@ class DifficultyManager {
                 timeLimit: 0,
                 allowMistakes: false,
                 highlightConflicts: true,
-                showPossibleNumbers: false
+                showPossibleNumbers: false,
+                preventIncorrectInput: true
             }
         };
     }
@@ -251,7 +264,7 @@ class DifficultyManager {
             easy: 'Perfect for beginners - more clues, unlimited hints, and helpful features enabled.',
             medium: 'Balanced challenge - moderate number of clues with some assistance.',
             hard: 'For experienced players - fewer clues and limited hints.',
-            expert: 'Ultimate challenge - minimal clues, very limited hints, no mistakes allowed!'
+            expert: 'Ultimate challenge - minimal clues, very limited hints, incorrect numbers are rejected!'
         };
         
         return descriptions[diff] || '';
@@ -269,6 +282,8 @@ class DifficultyManager {
                 return settings.highlightConflicts;
             case 'possibleNumbers':
                 return settings.showPossibleNumbers;
+            case 'preventIncorrect':
+                return settings.preventIncorrectInput;
             default:
                 return false;
         }

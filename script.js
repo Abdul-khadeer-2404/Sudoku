@@ -257,20 +257,69 @@ export class SudokuGame {
 
         if (this.board[row][col] === number) return;
 
+        // Check if we should prevent incorrect input (expert mode)
+        if (this.difficultyManager.shouldPreventIncorrectInput() && 
+            number !== 0 && number !== this.solution[row][col]) {
+            // Show feedback that the number is incorrect
+            this.showIncorrectInputFeedback();
+            return; // Don't place the incorrect number
+        }
+
         this.board[row][col] = number;
         this.selectedCell.textContent = number || '';
-        this.selectedCell.classList.toggle('incorrect', 
-            number !== 0 && number !== this.solution[row][col]);
+        
+        // Only highlight as incorrect if we're not in expert mode (since expert mode prevents incorrect input)
+        if (!this.difficultyManager.shouldPreventIncorrectInput()) {
+            this.selectedCell.classList.toggle('incorrect', 
+                number !== 0 && number !== this.solution[row][col]);
+        }
 
         // Update hint system with new board state
         this.hintSystem.currentBoard = this.board;
 
-        if (number !== 0 && number !== this.solution[row][col]) {
+        // Handle mistakes only if not in expert mode (since expert mode prevents mistakes)
+        if (!this.difficultyManager.shouldPreventIncorrectInput() && 
+            number !== 0 && number !== this.solution[row][col]) {
             this.handleMistake();
         }
 
         this.checkVictory();
         this.saveGameState();
+    }
+
+    // Show feedback for incorrect input in expert mode
+    showIncorrectInputFeedback() {
+        // Add visual feedback to the selected cell
+        this.selectedCell.classList.add('rejected-input');
+        setTimeout(() => {
+            this.selectedCell.classList.remove('rejected-input');
+        }, 500);
+
+        // Show a brief message
+        const message = document.createElement('div');
+        message.className = 'feedback-message';
+        message.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #e74c3c;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            z-index: 10000;
+            font-size: 0.9rem;
+            animation: slideDown 0.3s ease-out;
+        `;
+        message.textContent = 'Incorrect number!';
+        
+        document.body.appendChild(message);
+
+        setTimeout(() => {
+            message.style.animation = 'slideUp 0.3s ease-in';
+            setTimeout(() => message.remove(), 300);
+        }, 1500);
     }
 
     // Handle arrow key navigation
@@ -308,7 +357,10 @@ export class SudokuGame {
         this.mistakes++;
         this.updateMistakesDisplay();
 
-        if (!this.difficultyManager.areMistakesAllowed()) {
+        // Only reset game if mistakes are not allowed AND we're not preventing incorrect input
+        // (Expert mode prevents incorrect input, so this shouldn't trigger)
+        if (!this.difficultyManager.areMistakesAllowed() && 
+            !this.difficultyManager.shouldPreventIncorrectInput()) {
             this.resetGame();
         }
     }
